@@ -1,7 +1,0 @@
-dependencies:
-path_provider: ^2.1.4
-package_info_plus: ^8.0.2
-
-
-dev_dependencies:
-flutter_lints: ^4.0.0

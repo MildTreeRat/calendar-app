@@ -38,9 +38,30 @@ dependencies:
   # Logging dependencies
   package_info_plus: ^8.0.3
 
+  # Database
+  drift: ^2.20.3
+  sqlite3_flutter_libs: ^0.5.24
+  path_provider: ^2.1.4
+  path: ^1.9.0
+
+  # ID generation
+  uuid: ^4.5.1
+
+  # Date formatting
+  intl: ^0.19.0
+
+  # Cloud sync & auth
+  supabase_flutter: ^2.5.6
+  flutter_secure_storage: ^9.2.2
+  connectivity_plus: ^6.0.5
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+  # Database code generation
+  drift_dev: ^2.20.3
+  build_runner: ^2.4.13
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -59,6 +80,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  # Include feature flags configuration
+  assets:
+    - assets/config/feature_flags.json
 
   # To add assets to your application, add an assets section, like this:
   # assets:
