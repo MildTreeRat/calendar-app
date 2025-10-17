@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop, feature/**, release/** ]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android_linux:
+    name: Android (build APK) + Dart/Rust tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java (for Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "stable"
+          channel: "stable"
+          cache: true
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            crates/calendar_core
+
+      - name: Flutter pub get
+        run: flutter pub get
+        working-directory: app
+
+      - name: Dart analyze
+        run: flutter analyze
+        working-directory: app
+
+      - name: Dart tests
+        run: flutter test --no-pub
+        working-directory: app
+
+      - name: Rust tests
+        run: cargo test --all --locked
+        working-directory: crates/calendar_core
+
+      - name: Build Android APK (debug)
+        run: flutter build apk --debug
+        working-directory: app
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk-debug
+          path: app/build/app/outputs/flutter-apk/app-debug.apk
+
+  windows_desktop:
+    name: Windows Desktop (build .exe) + Dart tests
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "stable"
+          channel: "stable"
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Flutter pub get
+        run: flutter pub get
+        working-directory: app
+
+      - name: Dart tests
+        run: flutter test
+        working-directory: app
+
+      - name: Build Windows (Release)
+        run: flutter build windows --release
+        working-directory: app
+
+      - name: Upload Windows artifact (Release folder)
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: app/build/windows/**/runner/Release/
+
+  # Uncomment later when you're ready to build iOS on macOS runners
+  # ios_macos:
+  #   name: iOS (build IPA) + Dart tests
+  #   runs-on: macos-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: subosito/flutter-action@v2
+  #       with:
+  #         flutter-version: "stable"
+  #         channel: "stable"
+  #     - name: CocoaPods
+  #       run: |
+  #         sudo gem install cocoapods --no-document
+  #         cd app/ios && pod install
+  #     - name: Dart tests
+  #       run: flutter test
+  #       working-directory: app
+  #     - name: Build IPA (requires signing set up)
+  #       run: flutter build ipa
+  #       working-directory: app
+  #     - name: Upload IPA
+  #       uses: actions/upload-artifact@v4
+  #       with:
+  #         name: ios-ipa
+  #         path: app/build/ios/ipa/*.ipa
