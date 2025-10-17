@@ -1,14 +1,23 @@
 import 'package:flutter/material.dart';
 import 'logging/logger.dart';
+import 'config/feature_flags.dart';
+import 'database/database.dart';
+import 'database/seeder.dart';
+import 'screens/calendar_home.dart';
+import 'utils/user_session.dart';
 
 Future<void> main() async {
   // Initialize Flutter binding
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Initialize feature flags
+  await FeatureFlags.initialize();
+  final flags = FeatureFlags.instance;
+
   // Initialize logger with configuration
   await Logger.initialize(
-    config: const LoggerConfig(
-      level: LogLevel.info, // Only INFO, WARN, and ERROR (no TRACE or DEBUG)
+    config: LoggerConfig(
+      level: flags.debugLogging ? LogLevel.debug : LogLevel.info,
       console: true,
       structuredLogging: false, // Use plain text for easier reading
       keepDays: 7,
@@ -19,11 +28,31 @@ Future<void> main() async {
   logger.info(
     'Application starting',
     tag: 'main',
-    metadata: {'version': '1.0.0'},
+    metadata: {
+      'version': '1.0.0',
+      'cloud_sync': flags.cloudSync,
+      'auto_sync': flags.autoSync,
+      'seed_data': flags.seedData,
+    },
   );
 
+  // Initialize database
+  final db = AppDatabase();
+  logger.debug('Database initialized', tag: 'main');
+
+  // Run seeder if enabled and database is empty
+  if (flags.seedData) {
+    final seeder = Seeder(db: db);
+    await seeder.runIfEmpty();
+  }
+
+  // Get default user ID
+  final userSession = UserSession(db);
+  final userId = await userSession.getDefaultUserId();
+  logger.debug('User session initialized', tag: 'main', metadata: {'user_id': userId});
+
   try {
-    runApp(const MyApp());
+    runApp(MyApp(database: db, userId: userId));
     logger.info('MyApp widget created successfully', tag: 'main');
   } catch (e, stack) {
     logger.error(
@@ -37,7 +66,14 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final AppDatabase database;
+  final String userId;
+
+  const MyApp({
+    super.key,
+    required this.database,
+    required this.userId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +83,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Calendar MVP',
       theme: ThemeData(useMaterial3: true, colorSchemeSeed: Colors.blue),
-      home: const HomePage(),
+      home: CalendarHome(database: database, userId: userId),
       builder: (context, child) {
         logger.trace('MaterialApp builder called', tag: 'MyApp');
         return child ?? const SizedBox.shrink();
