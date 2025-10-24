@@ -44,14 +44,14 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2; // Incremented to add changes table
 
   @override
   MigrationStrategy get migration {
     return MigrationStrategy(
       onCreate: (Migrator m) async {
         final logger = Logger.instance;
-        logger.info('Creating database schema v1', tag: 'Database');
+        logger.info('Creating database schema v2', tag: 'Database');
         await m.createAll();
 
         // Create indexes for performance
@@ -70,7 +70,22 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (Migrator m, int from, int to) async {
         final logger = Logger.instance;
         logger.info('Migrating database from v$from to v$to', tag: 'Database');
-        // Future migrations will go here
+
+        // Migration from v1 to v2: Add changes, sync_state, and device_info tables
+        if (from == 1 && to >= 2) {
+          logger.info('Adding changes table for sync support', tag: 'Database');
+
+          // Create changes table
+          await m.createTable(changes);
+
+          // Create sync_state table if it doesn't exist
+          await m.createTable(syncState);
+
+          // Create device_info table if it doesn't exist
+          await m.createTable(deviceInfo);
+
+          logger.info('Migration v1 -> v2 completed successfully', tag: 'Database');
+        }
       },
       beforeOpen: (details) async {
         final logger = Logger.instance;
