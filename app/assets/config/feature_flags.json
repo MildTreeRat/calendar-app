@@ -1,0 +1,6 @@
+{
+  "cloudSync": false,
+  "autoSync": false,
+  "debugLogging": true,
+  "seedData": true
+}

@@ -106,3 +106,14 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Install Rust calendar_core library
+set(RUST_LIB_PATH "${CMAKE_CURRENT_SOURCE_DIR}/libs/calendar_core.dll")
+if(EXISTS "${RUST_LIB_PATH}")
+  install(FILES "${RUST_LIB_PATH}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+  message(STATUS "calendar_core.dll will be bundled with the app")
+else()
+  message(WARNING "calendar_core.dll not found at ${RUST_LIB_PATH}")
+endif()
